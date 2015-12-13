@@ -1,16 +1,22 @@
-from urllib.request import urlopen
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
+from urllib.request import urlopen
 import re
 
 
 class Page:
-    """"""
+    """Dunno what to write yet"""
     def __init__(self, url):
         assert isinstance(url, str)
-        self._url = url if re.match(r"^http", url.lower()) else "http://" + re.sub(r"/*", r"", url.lower())
+        # url prefix
+        self._url = url.lower().strip() if re.match(r"^http", url.lower().strip())\
+            else "http://" + re.sub(r"/*", r"", url.lower().strip())
+        # url parsing
+        self._urlparse = urlparse(self._url)
+        # encoding checking priority
         self._trials = ("utf8", "cp950", "ascii", "latin1")
 
-        # Bind together
+        # Bind together in action
         self._source = ""
         self._encoding = ""
 
@@ -29,7 +35,6 @@ class Page:
         except:
             print("invalid url or bad connection")
 
-
     @property
     def encoding(self):
         if self._encoding:
@@ -47,7 +52,7 @@ class Page:
             return self._source
 
     @property
-    def tags(self):
+    def tag_names(self):
         ans = set()
         for tag in BeautifulSoup(self.source, "html.parser").find_all():
             ans.add(tag.name)
@@ -56,14 +61,17 @@ class Page:
     @property
     def urls(self, lv=1):
         ans = list()
-        for tag in self.tags:
-            for element in BeautifulSoup(self.source, "html.parser").find_all(tag):
-                # print(element.name + " -> " + element.attrs.__repr__())
-                print(element.name + " -> " + list(element.children).__repr__())
+        for tag_name in self.tag_names:
+            for tag in BeautifulSoup(self.source, "html.parser").find_all(tag_name):
+                try:
+                    ans.append(tag["href"])
+                except:
+                    pass
+        return ans
 
 
-target = "http://tw.yahoo.com/"
+target = "http://www.wikipedia.org/"
 
 p = Page(target)
 
-print(p.source)
+print(p.urls)
