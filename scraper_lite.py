@@ -59,19 +59,31 @@ class Page:
         return ans
 
     @property
-    def urls(self, lv=1):
+    def domain_name(self):
+        return self._urlparse.scheme + "://" + self._urlparse.netloc + "/"
+
+    @property
+    def links(self, lv=1):
         ans = list()
         for tag_name in self.tag_names:
             for tag in BeautifulSoup(self.source, "html.parser").find_all(tag_name):
                 try:
-                    ans.append(tag["href"])
+                    for attr in ("href", "action"):
+                        link = tag[attr].lower().strip()
+                        link = re.sub(r"^//", self._urlparse.scheme + "://", link)
+                        link = re.sub(r"^/", self._urlparse.scheme + "://" + self._urlparse.netloc + "/", link)
+                        # unless ...
+                        if not re.findall(r"^javascript:|\.(png|ico)$", link):
+                            ans.append(link)
                 except:
                     pass
         return ans
 
 
-target = "http://www.wikipedia.org/"
+target = "www.wikipedia.org"
 
 p = Page(target)
 
-print(p.urls)
+print(p.source, "\r")
+
+for a in sorted(p.links): print(a)
