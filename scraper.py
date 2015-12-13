@@ -4,41 +4,66 @@ import re
 
 
 class Page:
+    """"""
     def __init__(self, url):
         assert isinstance(url, str)
         self._url = url if re.match(r"^http", url.lower()) else "http://" + re.sub(r"/*", r"", url.lower())
+        self._trials = ("utf8", "cp950", "ascii", "latin1")
 
-    def guess_encoding(self, encodings=("utf8", "cp950", "ascii"), dept=10240):
-        html = urlopen(self._url)
-        content = html.read(dept)
-        # a = b""
-        # (lambda a, b: a + c for c in b)(b"", )
-        for encoding in encodings:
-            try:
-                content.decode(encoding)
-            except Exception as error:
-                print(error)
-            else:
-                print(content)
-                return encoding
+        # Bind together
+        self._source = ""
+        self._encoding = ""
+
+    def _get_source(self):
+        """-> str"""
+        try:
+            html = urlopen(self._url)
+            content = html.read()
+            for encoding in self._trials:
+                try:
+                    a = content.decode(encoding)
+                    self._source, self._encoding = a, encoding
+                    return a
+                except:
+                    pass
+        except:
+            print("invalid url or bad connection")
+
+
+    @property
+    def encoding(self):
+        if self._encoding:
+            return self._encoding
+        else:
+            self._get_source()
+            return self._encoding
 
     @property
     def source(self):
-        """-> str"""
-        html = urlopen(self._url)
-        try:
-            content = html.read()
-            return content.decode(self.guess_encoding())
-        except Exception as error:
-            print(error)
+        if self._source:
+            return self._source
+        else:
+            self._get_source()
+            return self._source
 
     @property
-    def tag_name(self, lv=1):
-        return self.source(self._url).__class__
+    def tags(self):
+        ans = set()
+        for tag in BeautifulSoup(self.source, "html.parser").find_all():
+            ans.add(tag.name)
+        return ans
 
-target = "http://www.mobile01.com/"
+    @property
+    def urls(self, lv=1):
+        ans = list()
+        for tag in self.tags:
+            for element in BeautifulSoup(self.source, "html.parser").find_all(tag):
+                # print(element.name + " -> " + element.attrs.__repr__())
+                print(element.name + " -> " + list(element.children).__repr__())
+
+
+target = "http://tw.yahoo.com/"
 
 p = Page(target)
 
-a = ""
-print((lambda: a + "b")())
+print(p.source)
