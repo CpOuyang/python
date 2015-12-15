@@ -78,53 +78,87 @@ class Page:
     def domain_name(self):
         return self._urlparse.scheme + "://" + self._urlparse.netloc + "/"
 
-    @property
-    def links(self):
+    def get_links(self, name=None, attrs={}, text=None, limit=None):
+        """name: tags to be looked for
+        attrs: dictionary of attributes"""
         ans = list()
-        for tag_name in self.tag_names:
-            for tag in BeautifulSoup(self.source, "html.parser").find_all(tag_name):
-                for attr in ("href", "action", "src"):
-                    if tag.has_attr(attr):
-                        link = tag[attr].lower().strip()
-                        link = re.sub(r"^//", self._urlparse.scheme + "://", link)
-                        link = re.sub(r"^/", self._urlparse.scheme + "://" + self._urlparse.netloc + "/", link)
-                        # unless ...
-                        if all([re.search(r"^(#|telnet:|ftp:|data:|javascript:|mailto:)", link) is None,
-                                re.search(r"\.(gif|ico|png|jpg)$", link) is None,
-                                link]):
-                            if not link.startswith("http"):
-                                p = self._urlparse
-                                if link.endswith((".php", ".js", ".htm", ".html", "css", "asp")):
-                                    link = p.scheme + "://" + p.netloc + "/" + link
-                                elif urlparse(link).query:
-                                    link = p.scheme + "://" + p.netloc + "/" + link
-                                elif 2 <= len(link.split("/")):
-                                    link = p.scheme + "://" + p.netloc + "/" + link
-                                elif 2 <= len(link.split("\.")):
-                                    link = p.scheme + "://" + link
-                            ans.append(re.sub(r"/$", r"", link))
+        for tag in BeautifulSoup(self.source, "html.parser").find_all(name=name, attrs=attrs, text=text, limit=limit):
+            for attr in ("href", "action", "src"):
+                if tag.has_attr(attr):
+                    # REMARK: href could be case-sensitive (e.g., www.ptt.cc)
+                    link = tag[attr]
+                    link = re.sub(r"^//", self._urlparse.scheme + "://", link)
+                    link = re.sub(r"^/", self._urlparse.scheme + "://" + self._urlparse.netloc + "/", link)
+                    # unless ...
+                    if all([re.search(r"^(#|telnet:|ftp:|data:|javascript:|mailto:)", link) is None,
+                            re.search(r"\.(gif|ico|png|jpg)$", link) is None,
+                            link]):
+                        if not link.startswith("http"):
+                            if link.endswith((".php", ".js", ".htm", ".html", ".css", ".asp")):
+                                link = self.domain_name + link
+                            elif urlparse(link).query:
+                                link = self.domain_name + link
+                            elif 2 <= len(link.split("/")):
+                                link = self.domain_name + link
+                            elif 2 <= len(link.split("\.")):
+                                link = self._urlparse.scheme + "://" + link
+                        ans.append(re.sub(r"/$", r"", link))
         return ans
 
 
 if __name__ == "__main__":
 
-    root = "d:\\scraper"
-    sites = {
-        "Mobile01": {
-            "_home_": "www.mobile01.com",
-            "bike": "www.mobile01.com/category.php?id=8",
+    root = "e:\\scraper"
+    projs = {
+        "Yahoo News Politics": {
+            "home": "tw.news.yahoo.com/politics",
+            "attrs": {
+                "class": "title ",
+                "href": re.compile(r"\.html$"),
+            },
+        },
+        "Yahoo News Sports": {
+            "home": "tw.news.yahoo.com/sports",
+            "attrs": {
+                "class": "title ",
+                "href": re.compile(r"\.html$"),
+            },
+        },
+        "PTT Creditcard": {
+            "home": "www.ptt.cc/bbs/creditcard/index.html",
+            "attrs": {
+                "href": re.compile(r"M\.\d{10}\."),
+            }
         },
     }
-    # sites = {
-    #     "Mobile01": "www.mobile01.com/category.php?id=8",
-    #     # "Yahoo News": "tw.news.yahoo.com",
-    # }
 
-    # for project in sites:
+    # for proj in projs:
+    #     time_stamp = "_".join([time.strftime("%Y%m%d", time.localtime()),
+    #                            time.strftime("%H%M%S", time.localtime())])
+    #     if not os.path.exists(os.path.join(root, proj, time_stamp)):
+    #         os.makedirs(os.path.join(root, proj, time_stamp))
+    #
+    #     page = Page(projs[proj]["home"])
+    #
+    #     keys = projs[proj].keys()
+    #     links = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
+    #                            attrs=projs[proj]["attrs"] if "attrs" in keys else {},
+    #                            text=projs[proj]["text"] if "text" in keys else None,
+    #                            limit=projs[proj]["limit"] if "limit" in keys else None)
+    #
+    #     print("=" * 20 + "Get links as follows:" + "=" * 20)
+    #     for link in links:
+    #         print(link)
+
+    # projects = {
+    #     "Mobile01": "www.mobile01.com",
+    #     "Yahoo News": "tw.news.yahoo.com",
+    # }
+    #
+    # for project in projects:
     #     # path setting
     #     if not os.path.exists(os.path.join(root, project)):
     #         os.makedirs(os.path.join(root, project))
-    #     os.environ["TZ"] = "PDT+8PDT"
     #     folder = os.path.join(root, project,
     #                           "_".join([time.strftime("%Y%m%d", time.localtime()),
     #                                     time.strftime("%H%M%S", time.localtime())]))
@@ -132,15 +166,11 @@ if __name__ == "__main__":
     #         os.makedirs(folder)
     #
     #     # scrape
-    #     page = Page(sites[project])
+    #     page = Page(projects[project])
     #
     #     if page.source:
     #         with open(os.path.join(folder, "index.html"), "wb+") as f:
     #             f.write(page.source.encode())
-
-    print(url2pathname("www.mobile01.com/category.php?id=8"))
-
-
 
     # NOT working in static way
     target = "www.sinyi.com.tw"
@@ -158,15 +188,30 @@ if __name__ == "__main__":
     # target = "www.wearn.com"
 
     target = "tw.news.yahoo.com"
-    target = "www.mobile01.com/category.php?id=8"
+    target = r"tw.news.yahoo.com/politics"
+    # target = "www.mobile01.com/category.php?id=8"
 
     # p = Page(target)
     #
     # print(p.source)
+    # for a in p.get_links(attrs={"class": "title ", "href": re.compile(r"\.html$")}): print(a)
+    # for a in p.get_links(): print(a)
 
-    # for a in p.links: print(a)
+    # xpath = "//*[@id=\"yui_3_9_1_1_1450192409807_1712\"]"
+    #
+    # print(BeautifulSoup(p.source, "html.parser").find_all(None, attrs={"class": "title "}))
 
     # print(quote("http://www.google.com/?id=中文"))
 
     # with open("d:\\zzz\\1.htm", "wb+") as f:
     #     f.write("test".encode())
+
+    # print(url2pathname("http://www.cpouyang.com/index.asp?id=123#haha"))
+    # print(url2pathname("https://www.cpouyang.com/index.asp?id=123#haha"))
+    # print(url2pathname("mailto://www.cpouyang.com/index.asp?id=123#haha"))
+    # print(url2pathname("ftp://www.cpouyang.com/index.asp?id=123#haha"))
+    #
+    # print(os.path.dirname(url2pathname("http://www.cpouyang.com/index.asp?id=123#haha")))
+    # print(os.path.basename(url2pathname("http://www.cpouyang.com/index.asp?id=123#haha")))
+
+    help({})
