@@ -7,16 +7,16 @@ import os, re, time
 class Page:
     """Dunno what to write yet"""
     # to be solved: 1.short url
-    def __init__(self, url, method="static"):
+    def __init__(self, url, method="static", waiting=3):
         """type = {"static", "dynamic"}"""
         assert isinstance(url, str)
         # url prefix
-        self._url = url.lower().strip() if re.findall(r"^http", url.lower().strip())\
-            else "http://" + re.sub(r"^/*", r"", url.lower().strip())
+        self._url = url if re.findall(r"^http", url) else "http://" + re.sub(r"^/*", r"", url)
         # url parsing
         self._urlparse = urlparse(self._url)
         # encoding checking priority
         self._trials = ("utf8", "cp950", "ascii", "latin1")
+        self._waiting = waiting
 
         # Bind together in action
         self._source = ""
@@ -27,6 +27,9 @@ class Page:
 
     def _get_source(self):
         """-> str"""
+        # have to call time package internally, otherwise would be too late
+        from time import sleep
+        sleep(self._waiting)
         try:
             if self._method == "static":
                 html = urlopen(self._url)
@@ -94,7 +97,7 @@ class Page:
                             re.search(r"\.(gif|ico|png|jpg)$", link) is None,
                             link]):
                         if not link.startswith("http"):
-                            if link.endswith((".php", ".js", ".htm", ".html", ".css", ".asp")):
+                            if re.search(r"\.(php|js|html?|s?html|css|asp)$", link):
                                 link = self.domain_name + link
                             elif urlparse(link).query:
                                 link = self.domain_name + link
@@ -108,17 +111,20 @@ class Page:
 
 if __name__ == "__main__":
 
-    root = "e:\\scraper"
+    root = "d:\\scraper"
+
     projs = {
-        "Yahoo News Politics": {
-            "home": "tw.news.yahoo.com/politics",
+        "Yahoo News Finance": {
+            "home": "tw.news.yahoo.com/finance",
+            "method": "dynamic",
             "attrs": {
                 "class": "title ",
                 "href": re.compile(r"\.html$"),
             },
         },
-        "Yahoo News Sports": {
-            "home": "tw.news.yahoo.com/sports",
+        "Yahoo News Real-estate": {
+            "home": "tw.news.yahoo.com/real-estate",
+            "method": "dynamic",
             "attrs": {
                 "class": "title ",
                 "href": re.compile(r"\.html$"),
@@ -128,49 +134,113 @@ if __name__ == "__main__":
             "home": "www.ptt.cc/bbs/creditcard/index.html",
             "attrs": {
                 "href": re.compile(r"M\.\d{10}\."),
-            }
+            },
         },
+        "cnYES Headlines": {
+            "home": "news.cnyes.com/headline_sitehead/list.shtml",
+            "attrs": {
+                "href": re.compile(r"\d+\.shtml\?c=headline_sitehead"),
+            },
+        },
+        "cnYES Rollnews": {
+            "home": "news.cnyes.com/rollnews/list.shtml",
+            "attrs": {
+                "href": re.compile(r"\d+\.shtml\?c=detail"),
+            },
+        },
+        "Mobile01 House": {
+            "home": "www.mobile01.com/forumtopic.php?c=26",
+            "attrs": {
+                "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$")
+            },
+        }
     }
 
-    # for proj in projs:
-    #     time_stamp = "_".join([time.strftime("%Y%m%d", time.localtime()),
-    #                            time.strftime("%H%M%S", time.localtime())])
-    #     if not os.path.exists(os.path.join(root, proj, time_stamp)):
-    #         os.makedirs(os.path.join(root, proj, time_stamp))
-    #
-    #     page = Page(projs[proj]["home"])
-    #
-    #     keys = projs[proj].keys()
-    #     links = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
-    #                            attrs=projs[proj]["attrs"] if "attrs" in keys else {},
-    #                            text=projs[proj]["text"] if "text" in keys else None,
-    #                            limit=projs[proj]["limit"] if "limit" in keys else None)
-    #
-    #     print("=" * 20 + "Get links as follows:" + "=" * 20)
-    #     for link in links:
-    #         print(link)
+    def safewrite(p, b=b""):
+        """Check if the directory exists before writing a file"""
+        if not os.path.exists(os.path.dirname(p)):
+            os.makedirs(os.path.dirname(p))
+        with open(p, "wb+") as f:
+            f.write(b)
 
-    # projects = {
-    #     "Mobile01": "www.mobile01.com",
-    #     "Yahoo News": "tw.news.yahoo.com",
-    # }
-    #
-    # for project in projects:
-    #     # path setting
-    #     if not os.path.exists(os.path.join(root, project)):
-    #         os.makedirs(os.path.join(root, project))
-    #     folder = os.path.join(root, project,
-    #                           "_".join([time.strftime("%Y%m%d", time.localtime()),
-    #                                     time.strftime("%H%M%S", time.localtime())]))
-    #     if not os.path.exists(folder):
-    #         os.makedirs(folder)
-    #
-    #     # scrape
-    #     page = Page(projects[project])
-    #
-    #     if page.source:
-    #         with open(os.path.join(folder, "index.html"), "wb+") as f:
-    #             f.write(page.source.encode())
+    # Prepare cnYES Rollnews
+    if "cnYES Rollnews" in projs.keys():
+        # Update the dict
+        ll = []
+        ll.append(projs["cnYES Rollnews"]["home"])
+        ll.extend([re.sub(r"list(?=\.shtml$)",
+                         "list_%s" % repr(i),
+                         projs["cnYES Rollnews"]["home"]) for i in range(2, 11)])
+        projs["cnYES Rollnews"]["link_pages"] = ll
+        projs["cnYES Rollnews"]["attrs"] = {
+            "href": re.compile(r"\d+\.shtml\?c=detail"),
+        }
+
+    # Prepare PTT Creditcard
+    if "PTT Creditcard" in projs.keys():
+        peek = Page(projs["PTT Creditcard"]["home"])
+        # Create link pages
+        tmp = peek.get_links(attrs={"href": re.compile(r"index\d{2,}\.html$")}).pop()
+        num = int(re.search(r"\d+(?=\.html$)", tmp).group())
+        # Update the dict
+        projs["PTT Creditcard"]["link_pages"] =\
+            [re.sub(r"(?<=index)\d+(?=\.html$)", repr(num - i), tmp) for i in range(3)]
+        projs["PTT Creditcard"]["attrs"] = {
+            "href": re.compile(r"M\.\d{10}\."),
+        }
+
+    # Prepare Mobile01 House
+    if "Mobile01 House" in projs.keys():
+        # Update the dict
+        projs["Mobile01 House"]["link_pages"] =\
+            [projs["Mobile01 House"]["home"] + "&p=%s" % repr(i+1) for i in range(3)]
+        projs["Mobile01 House"]["attrs"] = {
+            "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$"),
+        }
+
+    # Process all projects
+    for proj in projs:
+        time_stamp = "_".join([time.strftime("%Y%m%d", time.localtime()),
+                               time.strftime("%H%M%S", time.localtime())])
+        folder = os.path.join(root, proj, time_stamp)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        keys = projs[proj].keys()
+
+        if "link_pages" not in keys:
+            page = Page(projs[proj]["home"], method=projs[proj]["method"] if "method" in keys else "static")
+            links = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
+                                   attrs=projs[proj]["attrs"] if "attrs" in keys else {},
+                                   text=projs[proj]["text"] if "text" in keys else None,
+                                   limit=projs[proj]["limit"] if "limit" in keys else None)
+        else:
+            links = []
+            for link_page in projs[proj]["link_pages"]:
+                page = Page(link_page)
+                if page.source:
+                    tmp = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
+                                         attrs=projs[proj]["attrs"] if "attrs" in keys else {},
+                                         text=projs[proj]["text"] if "text" in keys else None,
+                                         limit=projs[proj]["limit"] if "limit" in keys else None)
+                    links.extend(tmp)
+
+        # handle the file retrieval
+        for sn, link in enumerate(links):  # print(link, "->", urlparse(link))
+            parse = urlparse(link)
+            # if not another website
+            if parse.path:
+                # Must be CLEAN in "conjunction" points when using os.path.join(a, b)
+                # Meanwhile, bar sign (|) result in errors in open function
+                # Hence we substitute bad signs with underscore (_)
+                fname = os.path.join(folder, url2pathname(parse.path).lstrip("\\"))
+                if parse.query:
+                    fname += "_" + parse.query
+                if parse.fragment:
+                    fname += "_" + parse.fragment
+                if not re.search(r"\.(html?|s?html|asp|css|js|xml|php)$", fname):
+                    fname += ".html"
+                print(":: Next process", fname, "from", link, "(%s/%s)" % (sn+1, len(links)))
+                safewrite(fname, Page(link).source.encode())
 
     # NOT working in static way
     target = "www.sinyi.com.tw"
@@ -188,30 +258,10 @@ if __name__ == "__main__":
     # target = "www.wearn.com"
 
     target = "tw.news.yahoo.com"
-    target = r"tw.news.yahoo.com/politics"
-    # target = "www.mobile01.com/category.php?id=8"
+    target = "www.mobile01.com/category.php?id=8"
+
+    # print(urlparse("http://www.mobile01.com/a/b/f=316&t=46391/97#aaa"))
 
     # p = Page(target)
     #
     # print(p.source)
-    # for a in p.get_links(attrs={"class": "title ", "href": re.compile(r"\.html$")}): print(a)
-    # for a in p.get_links(): print(a)
-
-    # xpath = "//*[@id=\"yui_3_9_1_1_1450192409807_1712\"]"
-    #
-    # print(BeautifulSoup(p.source, "html.parser").find_all(None, attrs={"class": "title "}))
-
-    # print(quote("http://www.google.com/?id=中文"))
-
-    # with open("d:\\zzz\\1.htm", "wb+") as f:
-    #     f.write("test".encode())
-
-    # print(url2pathname("http://www.cpouyang.com/index.asp?id=123#haha"))
-    # print(url2pathname("https://www.cpouyang.com/index.asp?id=123#haha"))
-    # print(url2pathname("mailto://www.cpouyang.com/index.asp?id=123#haha"))
-    # print(url2pathname("ftp://www.cpouyang.com/index.asp?id=123#haha"))
-    #
-    # print(os.path.dirname(url2pathname("http://www.cpouyang.com/index.asp?id=123#haha")))
-    # print(os.path.basename(url2pathname("http://www.cpouyang.com/index.asp?id=123#haha")))
-
-    help({})
