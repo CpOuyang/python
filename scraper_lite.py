@@ -112,8 +112,10 @@ class Page:
 
 if __name__ == "__main__":
 
-    root = "e:\\scraper" if socket.gethostname() == "Charles-PC" else "d:\\scraper"
-
+    root = "e:\\Sscraper" if socket.gethostname() == "Charles-PC"\
+        else "f:\\Scraper" if socket.gethostname() == "irenejuju-PC"\
+        else "d:\\Scraper"
+    
     projs = {
         "Yahoo News Stock": {
             "home": "tw.news.yahoo.com/stock",
@@ -161,23 +163,35 @@ if __name__ == "__main__":
                 "href": re.compile(r"/afe/.+\.aspx$")
             },
         },
-        # "CNN Asia": {
-        #     "home": "edition.cnn.com/asia",
-        #     # "method": "dynamic",
-        #     "name": "a",
-        #     "attrs": {
-        #         "href": re.compile(time.strftime(r"/%Y/%m/%d/", time.localtime())),
-        #     },
-        # },
+        "CNN Asia": {
+            "home": "edition.cnn.com/asia",
+            "name": "a",
+            "attrs": {
+                "href": re.compile(r"^/\d+/\d+/\d+/"),
+            },
+        },
+        "BBC TC Business": {
+            "home": "www.bbc.com/zhongwen/trad/business",
+            "attrs": {
+                "href": re.compile(r"/zhongwen/trad/business/\d+/\d+/"),
+            },
+        },
+        "Reuters SC Finance": {
+            "home": "cn.reuters.com",
+            "link_pages": ["cn.reuters.com/news/archive/financialServicesNews?date=today"],
+            "attrs": {
+                "href": re.compile(r"^/article/"),
+            },
+        },
     }
-
+    
     def safewrite(p, b=b""):
         """Check if the directory exists before writing a file"""
         if not os.path.exists(os.path.dirname(p)):
             os.makedirs(os.path.dirname(p))
         with open(p, "wb+") as f:
             f.write(b)
-
+    
     # Prepare CNA Finance
     if "CNA Finance" in projs.keys():
         # Update the dict
@@ -186,7 +200,7 @@ if __name__ == "__main__":
         projs["CNA Finance"]["attrs"] = {
             "href": re.compile(r"/afe/.+\.aspx$"),
         }
-
+    
     # Prepare cnYES Rollnews
     if "cnYES Rollnews" in projs.keys():
         # Update the dict
@@ -199,7 +213,7 @@ if __name__ == "__main__":
         projs["cnYES Rollnews"]["attrs"] = {
             "href": re.compile(r"\d+\.shtml\?c=detail"),
         }
-
+    
     # Prepare PTT Creditcard
     if "PTT Creditcard" in projs.keys():
         peek = Page(projs["PTT Creditcard"]["home"])
@@ -212,7 +226,7 @@ if __name__ == "__main__":
         projs["PTT Creditcard"]["attrs"] = {
             "href": re.compile(r"M\.\d{10}\."),
         }
-
+    
     # Prepare Mobile01 House
     if "Mobile01 House" in projs.keys():
         # Update the dict
@@ -221,7 +235,7 @@ if __name__ == "__main__":
         projs["Mobile01 House"]["attrs"] = {
             "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$"),
         }
-
+    
     # Process all projects
     for proj in projs:
         time_stamp = "_".join([time.strftime("%Y%m%d", time.localtime()),
@@ -231,7 +245,7 @@ if __name__ == "__main__":
         if not os.path.exists(folder):
             os.makedirs(folder)
         keys = projs[proj].keys()
-
+    
         if "link_pages" not in keys:
             page = Page(projs[proj]["home"], method=projs[proj]["method"] if "method" in keys else "static")
             links = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
@@ -248,7 +262,7 @@ if __name__ == "__main__":
                                          text=projs[proj]["text"] if "text" in keys else None,
                                          limit=projs[proj]["limit"] if "limit" in keys else None)
                     links.extend(tmp)
-
+    
         # handle the file retrieval
         links = sorted(set(links))
         for sn, link in enumerate(links):   # print(link)
