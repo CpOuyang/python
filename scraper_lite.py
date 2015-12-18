@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, quote
 from urllib.request import urlopen, urlretrieve, url2pathname
-import os, re, time
+import os, re, time, socket
 
 
 class Page:
@@ -112,63 +112,63 @@ class Page:
 
 if __name__ == "__main__":
 
-    root = "d:\\scraper"
+    root = "e:\\scraper" if socket.gethostname() == "Charles-PC" else "d:\\scraper"
 
     projs = {
-        # "Yahoo News Stock": {
-        #     "home": "tw.news.yahoo.com/stock",
-        #     "method": "dynamic",
-        #     "attrs": {
-        #         "class": "title ",
-        #         "href": re.compile(r"\.html$"),
-        #     },
-        # },
-        # "Yahoo News Real-estate": {
-        #     "home": "tw.news.yahoo.com/real-estate",
-        #     "method": "dynamic",
-        #     "attrs": {
-        #         "class": "title ",
-        #         "href": re.compile(r"\.html$"),
-        #     },
-        # },
-        # "PTT Creditcard": {
-        #     "home": "www.ptt.cc/bbs/creditcard/index.html",
-        #     "attrs": {
-        #         "href": re.compile(r"M\.\d{10}\."),
-        #     },
-        # },
-        # "cnYES Headlines": {
-        #     "home": "news.cnyes.com/headline_sitehead/list.shtml",
-        #     "attrs": {
-        #         "href": re.compile(r"\d+\.shtml\?c=headline_sitehead"),
-        #     },
-        # },
-        # "cnYES Rollnews": {
-        #     "home": "news.cnyes.com/rollnews/list.shtml",
-        #     "attrs": {
-        #         "href": re.compile(r"\d+\.shtml\?c=detail"),
-        #     },
-        # },
-        # "Mobile01 House": {
-        #     "home": "www.mobile01.com/forumtopic.php?c=26",
-        #     "attrs": {
-        #         "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$")
-        #     },
-        # },
-        # "CNA Finance": {
-        #     "home": "www.cna.com.tw/list/afe-1.aspx",
-        #     "attrs": {
-        #         "href": re.compile(r"/afe/.+\.aspx$")
-        #     },
-        # },
-        "CNN Asia": {
-            "home": "edition.cnn.com/asia",
-            # "method": "dynamic",
-            "name": "a",
+        "Yahoo News Stock": {
+            "home": "tw.news.yahoo.com/stock",
+            "method": "dynamic",
             "attrs": {
-                "href": re.compile(time.strftime(r"/%Y/%m/%d/", time.localtime())),
+                "class": "title ",
+                "href": re.compile(r"\.html$"),
             },
         },
+        "Yahoo News Real-estate": {
+            "home": "tw.news.yahoo.com/real-estate",
+            "method": "dynamic",
+            "attrs": {
+                "class": "title ",
+                "href": re.compile(r"\.html$"),
+            },
+        },
+        "PTT Creditcard": {
+            "home": "www.ptt.cc/bbs/creditcard/index.html",
+            "attrs": {
+                "href": re.compile(r"M\.\d{10}\."),
+            },
+        },
+        "cnYES Headlines": {
+            "home": "news.cnyes.com/headline_sitehead/list.shtml",
+            "attrs": {
+                "href": re.compile(r"\d+\.shtml\?c=headline_sitehead"),
+            },
+        },
+        "cnYES Rollnews": {
+            "home": "news.cnyes.com/rollnews/list.shtml",
+            "attrs": {
+                "href": re.compile(r"\d+\.shtml\?c=detail"),
+            },
+        },
+        "Mobile01 House": {
+            "home": "www.mobile01.com/forumtopic.php?c=26",
+            "attrs": {
+                "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$")
+            },
+        },
+        "CNA Finance": {
+            "home": "www.cna.com.tw/list/afe-1.aspx",
+            "attrs": {
+                "href": re.compile(r"/afe/.+\.aspx$")
+            },
+        },
+        # "CNN Asia": {
+        #     "home": "edition.cnn.com/asia",
+        #     # "method": "dynamic",
+        #     "name": "a",
+        #     "attrs": {
+        #         "href": re.compile(time.strftime(r"/%Y/%m/%d/", time.localtime())),
+        #     },
+        # },
     }
 
     def safewrite(p, b=b""):
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     # Process all projects
     for proj in projs:
         time_stamp = "_".join([time.strftime("%Y%m%d", time.localtime()),
-                               time.strftime("%H%M%S", time.localtime()),
+                               # time.strftime("%H%M%S", time.localtime()),
                                ])
         folder = os.path.join(root, proj, time_stamp)
         if not os.path.exists(folder):
@@ -251,43 +251,19 @@ if __name__ == "__main__":
 
         # handle the file retrieval
         links = sorted(set(links))
-        for sn, link in enumerate(links):   print(link)
-            # parse = urlparse(link)
-            # # if not another website
-            # if parse.path:
-            #     # Must be CLEAN in "conjunction" points when using os.path.join(a, b)
-            #     # Meanwhile, bar sign (|) result in errors in open function
-            #     # Hence we substitute bad signs with underscore (_)
-            #     fname = os.path.join(folder, url2pathname(parse.path).lstrip("\\"))
-            #     if parse.query:
-            #         fname += "_" + parse.query
-            #     if parse.fragment:
-            #         fname += "_" + parse.fragment
-            #     if not re.search(r"\.(html?|s?html|aspx?|css|js|xml|php)$", fname):
-            #         fname += ".html"
-            #     print(":: Next process", fname, "from", link, "(%s/%s)" % (sn+1, len(links)))
-            #     safewrite(fname, Page(link).source.encode())
-
-    # NOT working in static way
-    target = "www.sinyi.com.tw"
-    target = "www.yungching.com.tw"
-    target = "www.ctbcbank.com/CTCBPortalWeb/appmanager/ebank/rb"
-    target = "www.landbank.com.tw"
-
-    target = "www.appledaily.com.tw"
-    target = "www.cnyes.com"
-    target = "www.mobile01.com"
-    # target = "www.twse.com.tw"
-    target = "www.ptt.cc"
-    # target = "www.master1995.com.tw"
-    # target = "www.etwarm.com.tw"
-    # target = "www.wearn.com"
-
-    target = "tw.news.yahoo.com"
-    target = "www.mobile01.com/category.php?id=8"
-
-    # print(urlparse("http://www.mobile01.com/a/b/f=316&t=46391/97#aaa"))
-
-    # p = Page(target)
-    #
-    # print(p.source)
+        for sn, link in enumerate(links):   # print(link)
+            parse = urlparse(link)
+            # if not another website
+            if parse.path:
+                # Must be CLEAN in "conjunction" points when using os.path.join(a, b)
+                # Meanwhile, bar sign (|) result in errors in open function
+                # Hence we substitute bad signs with underscore (_)
+                fname = os.path.join(folder, url2pathname(parse.path).lstrip("\\"))
+                if parse.query:
+                    fname += "_" + parse.query
+                if parse.fragment:
+                    fname += "_" + parse.fragment
+                if not re.search(r"\.(html?|s?html|aspx?|css|js|xml|php)$", fname):
+                    fname += ".html"
+                print(":: Next process", fname, "from", link, "(%s/%s)" % (sn+1, len(links)))
+                safewrite(fname, Page(link).source.encode())
