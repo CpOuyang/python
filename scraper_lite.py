@@ -112,7 +112,7 @@ class Page:
 
 if __name__ == "__main__":
 
-    root = "e:\\Sscraper" if socket.gethostname() == "Charles-PC"\
+    root = "c:\\Users\\Charles\\OneDrive\\Scraper" if socket.gethostname() == "Charles-PC"\
         else "f:\\Scraper" if socket.gethostname() == "irenejuju-PC"\
         else "d:\\Scraper"
 
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         ll.append(projs["cnYES Rollnews"]["home"])
         ll.extend([re.sub(r"list(?=\.shtml$)",
                          "list_%s" % repr(i),
-                         projs["cnYES Rollnews"]["home"]) for i in range(2, 11)])
+                         projs["cnYES Rollnews"]["home"]) for i in range(2, 21)])
         projs["cnYES Rollnews"]["link_pages"] = ll
         projs["cnYES Rollnews"]["attrs"] = {
             "href": re.compile(r"\d+\.shtml\?c=detail"),
