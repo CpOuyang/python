@@ -7,7 +7,7 @@ import os, re, time, socket
 class Page:
     """Dunno what to write yet"""
     # to be solved: 1.short url
-    def __init__(self, url, method="static", waiting=5):
+    def __init__(self, url, method="static", waiting=3):
         """type = {"static", "dynamic"}"""
         assert isinstance(url, str)
         # url prefix
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     root = "e:\\Sscraper" if socket.gethostname() == "Charles-PC"\
         else "f:\\Scraper" if socket.gethostname() == "irenejuju-PC"\
         else "d:\\Scraper"
-    
+
     projs = {
         "Yahoo News Stock": {
             "home": "tw.news.yahoo.com/stock",
@@ -156,6 +156,7 @@ if __name__ == "__main__":
             "attrs": {
                 "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$")
             },
+            "waiting": 5,
         },
         "CNA Finance": {
             "home": "www.cna.com.tw/list/afe-1.aspx",
@@ -184,14 +185,14 @@ if __name__ == "__main__":
             },
         },
     }
-    
+
     def safewrite(p, b=b""):
         """Check if the directory exists before writing a file"""
         if not os.path.exists(os.path.dirname(p)):
             os.makedirs(os.path.dirname(p))
         with open(p, "wb+") as f:
             f.write(b)
-    
+
     # Prepare CNA Finance
     if "CNA Finance" in projs.keys():
         # Update the dict
@@ -200,7 +201,7 @@ if __name__ == "__main__":
         projs["CNA Finance"]["attrs"] = {
             "href": re.compile(r"/afe/.+\.aspx$"),
         }
-    
+
     # Prepare cnYES Rollnews
     if "cnYES Rollnews" in projs.keys():
         # Update the dict
@@ -213,7 +214,7 @@ if __name__ == "__main__":
         projs["cnYES Rollnews"]["attrs"] = {
             "href": re.compile(r"\d+\.shtml\?c=detail"),
         }
-    
+
     # Prepare PTT Creditcard
     if "PTT Creditcard" in projs.keys():
         peek = Page(projs["PTT Creditcard"]["home"])
@@ -226,7 +227,7 @@ if __name__ == "__main__":
         projs["PTT Creditcard"]["attrs"] = {
             "href": re.compile(r"M\.\d{10}\."),
         }
-    
+
     # Prepare Mobile01 House
     if "Mobile01 House" in projs.keys():
         # Update the dict
@@ -235,7 +236,7 @@ if __name__ == "__main__":
         projs["Mobile01 House"]["attrs"] = {
             "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$"),
         }
-    
+
     # Process all projects
     for proj in projs:
         time_stamp = "_".join([time.strftime("%Y%m%d", time.localtime()),
@@ -245,9 +246,11 @@ if __name__ == "__main__":
         if not os.path.exists(folder):
             os.makedirs(folder)
         keys = projs[proj].keys()
-    
+
         if "link_pages" not in keys:
-            page = Page(projs[proj]["home"], method=projs[proj]["method"] if "method" in keys else "static")
+            page = Page(projs[proj]["home"],
+                        method=projs[proj]["method"] if "method" in keys else "static",
+                        waiting=projs[proj]["waiting"] if "waiting" in keys else 3)
             links = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
                                    attrs=projs[proj]["attrs"] if "attrs" in keys else {},
                                    text=projs[proj]["text"] if "text" in keys else None,
@@ -255,14 +258,16 @@ if __name__ == "__main__":
         else:
             links = []
             for link_page in projs[proj]["link_pages"]:
-                page = Page(link_page, method=projs[proj]["method"] if "method" in keys else "static")
+                page = Page(link_page,
+                            method=projs[proj]["method"] if "method" in keys else "static",
+                            waiting=projs[proj]["waiting"] if "waiting" in keys else 3)
                 if page.source:
                     tmp = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
                                          attrs=projs[proj]["attrs"] if "attrs" in keys else {},
                                          text=projs[proj]["text"] if "text" in keys else None,
                                          limit=projs[proj]["limit"] if "limit" in keys else None)
                     links.extend(tmp)
-    
+
         # handle the file retrieval
         links = sorted(set(links))
         for sn, link in enumerate(links):   # print(link)
