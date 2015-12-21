@@ -8,7 +8,7 @@ import os, re, time, socket
 class Page:
     """Dunno what to write yet"""
     # to be solved: 1.short url
-    def __init__(self, url, method="static", waiting=3):
+    def __init__(self, url, method="static", waiting=5):
         """type = {"static", "dynamic"}"""
         assert isinstance(url, str)
         # url prefix
@@ -286,15 +286,15 @@ if __name__ == "__main__":
                     fname += "_" + parse.fragment
                 if not re.search(r"\.(html?|s?html|aspx?|css|js|xml|php)$", fname):
                     fname += ".html"
-                # logs
-                safe_write(os.path.join(root, time.strftime("_log\\%Y%m%d.log", tm)),
-                           "\r\n".join([":: Ready to " + fname,
-                                        "       from " + link + " (%s/%s)" % (sn+1, len(links)),
-                                        "         at " + time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()),
-                                        "\r\n"]).encode(),
-                           append=True)
-                # Gets
-                safe_write(fname, Page(link).source.encode())
+                # Gets and logs
+                p, l = Page(link), ""
+                l += ":: Ready to " + fname + "\r\n"
+                l += "       from " + link + " (%s/%s)" % (sn+1, len(links)) + "\r\n"
+                l += "         at " + time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()) + "\r\n"
+                if not p.source:
+                    l += "Invalid url or bad connection: " + link + "\r\n"
+                l += "\r\n"
+                safe_write(os.path.join(root, time.strftime("_log\\%Y%m%d.log", tm)), l.encode(), append=True)
 
     # close a batch
     exit()
