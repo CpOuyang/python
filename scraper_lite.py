@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse, quote
-from urllib.request import urlopen, urlretrieve, url2pathname
+from sys import exit
+from urllib.parse import urlparse
+from urllib.request import urlopen, url2pathname
 import os, re, time, socket
 
 
@@ -116,81 +117,88 @@ if __name__ == "__main__":
         else "f:\\Scraper" if socket.gethostname() == "irenejuju-PC"\
         else "d:\\Scraper"
 
-    projs = {
-        "Yahoo News Stock": {
-            "home": "tw.news.yahoo.com/stock",
-            "method": "dynamic",
-            "attrs": {
-                "class": "title ",
-                "href": re.compile(r"\.html$"),
+    # get ready to include definitions
+    # if os.path.exists(os.path.join(root, "projects.ini")):
+    #     with open(os.path.join(root, "projects.ini"), "r") as ini:
+    #         exec(ini.read())
+    if False:
+        pass
+    else:
+        projs = {
+            "Yahoo News Stock": {
+                "home": "tw.news.yahoo.com/stock",
+                "method": "dynamic",
+                "attrs": {
+                    "class": "title ",
+                    "href": re.compile(r"\.html$"),
+                },
             },
-        },
-        "Yahoo News Real-estate": {
-            "home": "tw.news.yahoo.com/real-estate",
-            "method": "dynamic",
-            "attrs": {
-                "class": "title ",
-                "href": re.compile(r"\.html$"),
+            "Yahoo News Real-estate": {
+                "home": "tw.news.yahoo.com/real-estate",
+                "method": "dynamic",
+                "attrs": {
+                    "class": "title ",
+                    "href": re.compile(r"\.html$"),
+                },
             },
-        },
-        "PTT Creditcard": {
-            "home": "www.ptt.cc/bbs/creditcard/index.html",
-            "attrs": {
-                "href": re.compile(r"M\.\d{10}\."),
+            "PTT Creditcard": {
+                "home": "www.ptt.cc/bbs/creditcard/index.html",
+                "attrs": {
+                    "href": re.compile(r"M\.\d{10}\."),
+                },
             },
-        },
-        "cnYES Headlines": {
-            "home": "news.cnyes.com/headline_sitehead/list.shtml",
-            "attrs": {
-                "href": re.compile(r"\d+\.shtml\?c=headline_sitehead"),
+            "cnYES Headlines": {
+                "home": "news.cnyes.com/headline_sitehead/list.shtml",
+                "attrs": {
+                    "href": re.compile(r"\d+\.shtml\?c=headline_sitehead"),
+                },
             },
-        },
-        "cnYES Rollnews": {
-            "home": "news.cnyes.com/rollnews/list.shtml",
-            "attrs": {
-                "href": re.compile(r"\d+\.shtml\?c=detail"),
+            "cnYES Rollnews": {
+                "home": "news.cnyes.com/rollnews/list.shtml",
+                "attrs": {
+                    "href": re.compile(r"\d+\.shtml\?c=detail"),
+                },
             },
-        },
-        "Mobile01 House": {
-            "home": "www.mobile01.com/forumtopic.php?c=26",
-            "attrs": {
-                "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$")
+            "Mobile01 House": {
+                "home": "www.mobile01.com/forumtopic.php?c=26",
+                "attrs": {
+                    "href": re.compile(r"^topicdetail\.php\?f=\d+&t=\d+$"),
+                },
+                "waiting": 5,
             },
-            "waiting": 5,
-        },
-        "CNA Finance": {
-            "home": "www.cna.com.tw/list/afe-1.aspx",
-            "attrs": {
-                "href": re.compile(r"/afe/.+\.aspx$")
+            "CNA Finance": {
+                "home": "www.cna.com.tw/list/afe-1.aspx",
+                "attrs": {
+                    "href": re.compile(r"/afe/.+\.aspx$"),
+                },
             },
-        },
-        "CNN Asia": {
-            "home": "edition.cnn.com/asia",
-            "name": "a",
-            "attrs": {
-                "href": re.compile(r"^/\d+/\d+/\d+/"),
+            "CNN Asia": {
+                "home": "edition.cnn.com/asia",
+                "name": "a",
+                "attrs": {
+                    "href": re.compile(r"^/\d+/\d+/\d+/"),
+                },
             },
-        },
-        "BBC TC Business": {
-            "home": "www.bbc.com/zhongwen/trad/business",
-            "attrs": {
-                "href": re.compile(r"/zhongwen/trad/business/\d+/\d+/"),
+            "BBC TC Business": {
+                "home": "www.bbc.com/zhongwen/trad/business",
+                "attrs": {
+                    "href": re.compile(r"/zhongwen/trad/business/\d+/\d+/"),
+                },
             },
-        },
-        "Reuters SC Finance": {
-            "home": "cn.reuters.com",
-            "link_pages": ["cn.reuters.com/news/archive/financialServicesNews?date=today"],
-            "attrs": {
-                "href": re.compile(r"^/article/"),
+            "Reuters SC Finance": {
+                "home": "cn.reuters.com",
+                "link_pages": ["cn.reuters.com/news/archive/financialServicesNews?date=today",],
+                "attrs": {
+                    "href": re.compile(r"^/article/"),
+                },
             },
-        },
-    }
+        }
 
-    def safewrite(p, b=b""):
+    def safe_write(p, b=b"", append=False):
         """Check if the directory exists before writing a file"""
         if not os.path.exists(os.path.dirname(p)):
             os.makedirs(os.path.dirname(p))
-        with open(p, "wb+") as f:
+        with open(p, "wb+" if not append else "ab+") as f:
             f.write(b)
 
     # Prepare CNA Finance
@@ -238,35 +246,29 @@ if __name__ == "__main__":
         }
 
     # Process all projects
+    tm = time.localtime()
     for proj in projs:
-        time_stamp = "_".join([time.strftime("%Y%m%d", time.localtime()),
-                               # time.strftime("%H%M%S", time.localtime()),
+        time_stamp = "_".join([time.strftime("%Y%m%d", tm),
+                               # time.strftime("%H%M%S", tm),
                                ])
         folder = os.path.join(root, proj, time_stamp)
         if not os.path.exists(folder):
             os.makedirs(folder)
         keys = projs[proj].keys()
+        # Take "home" as default link page if no link pages are specified
+        link_pages = [projs[proj]["home"],] if "link_pages" not in keys else projs[proj]["link_pages"]
+        links = []
 
-        if "link_pages" not in keys:
-            page = Page(projs[proj]["home"],
+        for link_page in link_pages:
+            page = Page(link_page,
                         method=projs[proj]["method"] if "method" in keys else "static",
                         waiting=projs[proj]["waiting"] if "waiting" in keys else 3)
-            links = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
-                                   attrs=projs[proj]["attrs"] if "attrs" in keys else {},
-                                   text=projs[proj]["text"] if "text" in keys else None,
-                                   limit=projs[proj]["limit"] if "limit" in keys else None)
-        else:
-            links = []
-            for link_page in projs[proj]["link_pages"]:
-                page = Page(link_page,
-                            method=projs[proj]["method"] if "method" in keys else "static",
-                            waiting=projs[proj]["waiting"] if "waiting" in keys else 3)
-                if page.source:
-                    tmp = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
-                                         attrs=projs[proj]["attrs"] if "attrs" in keys else {},
-                                         text=projs[proj]["text"] if "text" in keys else None,
-                                         limit=projs[proj]["limit"] if "limit" in keys else None)
-                    links.extend(tmp)
+            if page.source:
+                tmp = page.get_links(name=projs[proj]["tags"] if "tags" in keys else None,
+                                     attrs=projs[proj]["attrs"] if "attrs" in keys else {},
+                                     text=projs[proj]["text"] if "text" in keys else None,
+                                     limit=projs[proj]["limit"] if "limit" in keys else None)
+                links.extend(tmp)
 
         # handle the file retrieval
         links = sorted(set(links))
@@ -284,5 +286,15 @@ if __name__ == "__main__":
                     fname += "_" + parse.fragment
                 if not re.search(r"\.(html?|s?html|aspx?|css|js|xml|php)$", fname):
                     fname += ".html"
-                print(":: Next process", fname, "from", link, "(%s/%s)" % (sn+1, len(links)))
-                safewrite(fname, Page(link).source.encode())
+                # logs
+                safe_write(os.path.join(root, time.strftime("_log\\%Y%m%d.log", tm)),
+                           "\r\n".join([":: Ready to " + fname,
+                                        "       from " + link + " (%s/%s)" % (sn+1, len(links)),
+                                        "         at " + time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()),
+                                        "\r\n"]).encode(),
+                           append=True)
+                # Gets
+                safe_write(fname, Page(link).source.encode())
+
+    # close a batch
+    exit()
