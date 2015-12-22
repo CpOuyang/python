@@ -295,6 +295,7 @@ if __name__ == "__main__":
                     l += "Invalid url or bad connection: " + link + "\r\n"
                 l += "\r\n"
                 safe_write(os.path.join(root, time.strftime("_log\\%Y%m%d.log", tm)), l.encode(), append=True)
+                safe_write(fname, p.source.encode())
 
     # close a batch
     exit()
