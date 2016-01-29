@@ -1,8 +1,7 @@
 from bs4 import BeautifulSoup
-from sys import exit
 from urllib.parse import urlparse
 from urllib.request import urlopen, url2pathname
-import os, re, time, socket
+import os, re, time, socket, sys
 
 
 class Page:
@@ -125,6 +124,13 @@ if __name__ == "__main__":
         pass
     else:
         projs = {
+            "Yahoo House": {
+                "home": "tw.house.yahoo.com",
+                 "method": "dynamic",
+                "attrs": {
+                    "href": re.compile(r"^/news/.+-\d{9}\.html$"),
+                },
+            },
             "Yahoo News Stock": {
                 "home": "tw.news.yahoo.com/stock",
                 "method": "dynamic",
@@ -200,6 +206,15 @@ if __name__ == "__main__":
             os.makedirs(os.path.dirname(p))
         with open(p, "wb+" if not append else "ab+") as f:
             f.write(b)
+
+    # Prepare Yahoo House
+    if "CNA Finance" in projs.keys():
+        # Update the dict
+        projs["Yahoo House"]["link_pages"] =\
+            [projs["Yahoo House"]["home"] + "/archive/%s.html" % repr(i+1) for i in range(5)]
+        projs["Yahoo House"]["attrs"] = {
+            "href": re.compile(r"^/news/.+-\d{9}\.html$"),
+        }
 
     # Prepare CNA Finance
     if "CNA Finance" in projs.keys():
@@ -298,4 +313,4 @@ if __name__ == "__main__":
                 safe_write(fname, p.source.encode())
 
     # close a batch
-    exit()
+    sys.exit()
