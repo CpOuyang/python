@@ -3,8 +3,8 @@ def encrypt(string=''):
     import base64
     from operator import xor
 
-    __key1 = 'PKMKey22856'
-    __key2 = 'SekEy24110'
+    __key1 = 'testkey1'
+    __key2 = 'testkey2'
 
     h1 = hashlib.md5(__key1.encode()).hexdigest()
     h2 = hashlib.md5(__key2.encode()).hexdigest()
@@ -26,8 +26,8 @@ def decrypt(string=''):
     import re
     from operator import xor
 
-    __key1 = 'PKMKey22856'
-    __key2 = 'SekEy24110'
+    __key1 = 'testkey1'
+    __key2 = 'testkey2'
 
     h1 = hashlib.md5(__key1.encode()).hexdigest()
     h2 = hashlib.md5(__key2.encode()).hexdigest()
